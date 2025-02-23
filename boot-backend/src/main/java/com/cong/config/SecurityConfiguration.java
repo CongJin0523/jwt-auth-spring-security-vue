@@ -106,7 +106,7 @@ public class SecurityConfiguration {
         AuthorizeVO.class,
         ov -> {
           ov.setToken(token);
-          ov.setExpireTime(JWT.decode(token).getExpiresAt());
+          ov.setExpire(JWT.decode(token).getExpiresAt());
         });
 //    CopyProperties.copyProperties(account, authorizeVO);
 //    BeanUtils.copyProperties(account, authorizeVO);
