@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public interface BaseData {
-  default <T> T toViewObject(Class<T> clazz, Consumer<T> consumer) {
-    T obj = this.toViewObject(clazz);
+  default <T> T toObject(Class<T> clazz, Consumer<T> consumer) {
+    T obj = this.toObject(clazz);
     consumer.accept(obj);
     return obj;
   }
-  default <T> T toViewObject(Class<T> clazz) {
+  default <T> T toObject(Class<T> clazz) {
     try {
       Constructor<T> constructor = clazz.getDeclaredConstructor();
       T vo = constructor.newInstance();

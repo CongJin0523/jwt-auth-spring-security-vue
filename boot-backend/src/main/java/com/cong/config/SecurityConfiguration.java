@@ -43,7 +43,7 @@ public class SecurityConfiguration {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http
         .authorizeHttpRequests(conf -> conf
-            .requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers("/api/auth/**", "/error").permitAll()
             .anyRequest().authenticated()
         )
         .formLogin(conf -> conf
@@ -102,7 +102,7 @@ public class SecurityConfiguration {
     Account account = AccountContext.get();
     log.info("user login {}", user);
     String token = jwtUtils.createJwt(user, account.getId(), account.getUsername());
-    AuthorizeVO authorizeVO = account.toViewObject(
+    AuthorizeVO authorizeVO = account.toObject(
         AuthorizeVO.class,
         ov -> {
           ov.setToken(token);

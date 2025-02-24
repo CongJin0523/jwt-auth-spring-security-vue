@@ -3,15 +3,44 @@ package com.cong.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cong.context.AccountContext;
 import com.cong.entity.DTO.Account;
+import com.cong.entity.VO.request.EmailRegisterVO;
 import com.cong.mapper.AccountMapper;
 import com.cong.service.AccountService;
+import com.cong.utils.Const;
+import com.cong.utils.FlowUtils;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 @Service
+@Slf4j
 public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> implements AccountService {
+
+  @Resource
+  private FlowUtils flowUtils;
+
+  @Resource
+  private AmqpTemplate amqpTemplate;
+
+  @Resource
+  private StringRedisTemplate stringRedisTemplate;
+
+  @Resource
+  private BCryptPasswordEncoder passwordEncoder;
+
+  //use to authenticate login
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
     Account account = findAccountByUsernameOrEmail(username);
@@ -26,11 +55,66 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
         .build();
   }
 
+  @Override
+  public String verifyCode(String type, String email, String ip) {
+    synchronized (ip.intern()) {
+      if(!this.verifyLimit(ip)) {
+        return "Requesting too frequently, please try again later.";
+      }
+    }
+
+      Random random = new Random();
+      int verifyCode = random.nextInt(899999) + 100000;
+      Map<String, Object> data = Map.of("type", type, "email", email, "code", verifyCode);
+      amqpTemplate.convertAndSend("emailQueue", data);
+      stringRedisTemplate.opsForValue()
+          .set(Const.VERIFY_EMAIL_DATA + email, String.valueOf(verifyCode), 3, TimeUnit.MINUTES);
+      log.info("Verify request, code: {} email: {}", verifyCode, email);
+    return null;
+  }
+
+  // recode the limit to redit, avoid user to request validation code too frequently
+  private boolean verifyLimit(String ip) {
+    String key = Const.VERIFY_EMAIL_LIMIT + ip;
+    return flowUtils.limitOnceCheck(key, 60);
+  }
+
+  // mybatisPlus
   public Account findAccountByUsernameOrEmail(String content) {
     return this.query()
         .eq("username", content).or()
         .eq("email", content)
         .one();
-  };
+  }
+
+  //register
+  public String registerEmailAccount(EmailRegisterVO emailRegisterVO) {
+    String key = Const.VERIFY_EMAIL_DATA + emailRegisterVO.getEmail();
+    // verify code
+    String verifyCode = stringRedisTemplate.opsForValue().get(key);
+    if (verifyCode == null) {
+      return "Please to get verification code first";
+    }
+    if (!verifyCode.equals(emailRegisterVO.getCode())) {
+      return "Verification code is incorrect, Please try again later.";
+    }
+    if (this.findAccountByUsernameOrEmail(emailRegisterVO.getUsername()) != null || this.findAccountByUsernameOrEmail(emailRegisterVO.getEmail()) != null) {
+      return "Username or email already exist";
+    }
+
+    // register
+    String password = passwordEncoder.encode(emailRegisterVO.getPassword());
+    Account account = emailRegisterVO.toObject(Account.class, obj -> {
+      obj.setRegisterTime(new Date());
+      obj.setPassword(password);
+    });
+    if (this.save(account)) {
+      stringRedisTemplate.delete(key);
+      return null;
+    } else {
+      return "Interior Error, Please contact admin";
+    }
+  }
+
 
 }
