@@ -8,6 +8,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -25,9 +26,9 @@ public class AuthorizeController {
   AccountService accountService;
 
   @GetMapping("/verify-code")
-  public RestBean<?> verifyCode(@RequestParam("email") @Email String email,
+  public RestBean<?> verifyCode(@RequestParam("email") @Email @NotEmpty String email,
                                 @RequestParam("type") @Pattern(regexp = "(" + Const.REGISTER_EMAIL + "|" + Const.RESET_EMAIL + ")") String type,
-                                  HttpServletRequest request) {
+                                HttpServletRequest request) {
     log.info("Get verify code with email:{},type:{}", email, type);
     return this.resultHandle(() -> accountService.verifyCode(type, email, request.getRemoteAddr()));
   }

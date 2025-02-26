@@ -9,6 +9,7 @@ import com.cong.service.AccountService;
 import com.cong.utils.Const;
 import com.cong.utils.FlowUtils;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.Email;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -63,13 +64,13 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
       }
     }
 
-      Random random = new Random();
-      int verifyCode = random.nextInt(899999) + 100000;
-      Map<String, Object> data = Map.of("type", type, "email", email, "code", verifyCode);
-      amqpTemplate.convertAndSend("emailQueue", data);
-      stringRedisTemplate.opsForValue()
-          .set(Const.VERIFY_EMAIL_DATA + email, String.valueOf(verifyCode), 3, TimeUnit.MINUTES);
-      log.info("Verify request, code: {} email: {}", verifyCode, email);
+    Random random = new Random();
+    int verifyCode = random.nextInt(899999) + 100000;
+    Map<String, Object> data = Map.of("type", type, "email", email, "code", verifyCode);
+    amqpTemplate.convertAndSend("emailQueue", data);
+    stringRedisTemplate.opsForValue()
+        .set(Const.VERIFY_EMAIL_DATA + email, String.valueOf(verifyCode), 3, TimeUnit.MINUTES);
+    log.info("Verify request, type: {} code: {} email: {}", type, verifyCode, email);
     return null;
   }
 
