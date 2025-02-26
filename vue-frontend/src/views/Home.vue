@@ -13,7 +13,11 @@
             <div>Brother Jie</div>
         </div>
         <div class="right-card">
-            <router-view></router-view>
+            <router-view v-slot="{ Component }">
+                <transition name="el-zoom-in-top" mode="out-in">
+                    <component :is="Component"></component>
+                </transition>
+            </router-view>
         </div>
     </div>
 </template>

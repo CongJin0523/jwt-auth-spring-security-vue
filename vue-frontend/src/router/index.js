@@ -6,12 +6,15 @@ const router = createRouter( {
     routes:[
         {
             path:'/',
-            name:'home-login',
+            name:'home',
             component: () => import('@/views/Home.vue'),
             children:[
                 {
-                    path: '', name: 'login', component: () => import('@/views/home/Login.vue')
-                }
+                    path: '', name: 'home-login', component: () => import('@/views/home/Login.vue')
+                },
+                {
+                    path:'register', name: 'home-register', component: () => import('@/views/home/register.vue'),
+                },
             ]
         },
         {
@@ -24,7 +27,7 @@ const router = createRouter( {
 })
 router.beforeEach((to, from, next) => {
     const isAuthorized = authorized();
-    if (to.name.includes('login') && isAuthorized) {
+    if (to.name.startsWith('home') && isAuthorized) {
         next('/index');
     } else if (to.fullPath.startsWith('/index') && !isAuthorized) {
         next('/');

@@ -70,7 +70,7 @@ function userLogin() {
             <span style="font-size: 13px; color: gray">Create User</span>
         </el-divider>
         <div style="margin-top: 20px">
-            <el-button type="warning"  style="width: 80%" plain>Sign up</el-button>
+            <el-button @click="router.push('/register')" type="warning"  style="width: 80%" plain>Sign up</el-button>
         </div>
     </div>
 </template>
