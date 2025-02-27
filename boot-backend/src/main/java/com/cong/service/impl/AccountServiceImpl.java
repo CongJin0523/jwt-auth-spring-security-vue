@@ -3,7 +3,9 @@ package com.cong.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cong.context.AccountContext;
 import com.cong.entity.DTO.Account;
+import com.cong.entity.VO.request.ConfirmResetCodeVO;
 import com.cong.entity.VO.request.EmailRegisterVO;
+import com.cong.entity.VO.request.ResetVO;
 import com.cong.mapper.AccountMapper;
 import com.cong.service.AccountService;
 import com.cong.utils.Const;
@@ -12,6 +14,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.constraints.Email;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -74,6 +77,38 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
     return null;
   }
 
+  @Override
+  public String confirmVerifyCode(ConfirmResetCodeVO confirmResetCodeVO) {
+    String key = Const.VERIFY_EMAIL_DATA + confirmResetCodeVO.getEmail();
+    String verifyCode = stringRedisTemplate.opsForValue().get(key);
+    if (verifyCode == null) {
+      return "Please to get verification code first";
+    }
+    if (!verifyCode.equals(confirmResetCodeVO.getCode())) {
+      return "Verification code is incorrect";
+    }
+
+    return null;
+
+  }
+
+  @Override
+  public String resetPassword(ResetVO resetVO) {
+    String email = resetVO.getEmail();
+
+    String isValidVerifyCode = confirmVerifyCode(new ConfirmResetCodeVO(email, resetVO.getCode()));
+    if (isValidVerifyCode != null) {
+      return isValidVerifyCode;
+    }
+
+    String password = passwordEncoder.encode(resetVO.getPassword());
+    boolean update = this.update().eq("email", email).set("password", password).update();
+    if (update) {
+      stringRedisTemplate.delete(Const.VERIFY_EMAIL_DATA + email);
+      return null;
+    }
+    return "Reset password failure, Please try again later.";
+  }
   // recode the limit to redit, avoid user to request validation code too frequently
   private boolean verifyLimit(String ip) {
     String key = Const.VERIFY_EMAIL_LIMIT + ip;
@@ -89,6 +124,7 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
   }
 
   //register
+  @Override
   public String registerEmailAccount(EmailRegisterVO emailRegisterVO) {
     String key = Const.VERIFY_EMAIL_DATA + emailRegisterVO.getEmail();
     // verify code
@@ -116,6 +152,8 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
       return "Interior Error, Please contact admin";
     }
   }
+
+
 
 
 }

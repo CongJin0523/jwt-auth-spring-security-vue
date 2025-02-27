@@ -20,6 +20,10 @@ public record RestBean<T>(int code, T data, String msg) {
     return new RestBean<>(code, null, msg);
   }
 
+  public static <T> RestBean<T> forbidden(String msg) {
+    return fail(403, msg);
+  }
+
   public String toJsonString() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

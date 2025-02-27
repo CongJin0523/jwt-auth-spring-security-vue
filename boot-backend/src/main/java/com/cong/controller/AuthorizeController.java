@@ -1,7 +1,9 @@
 package com.cong.controller;
 
 import com.cong.entity.RestBean;
+import com.cong.entity.VO.request.ConfirmResetCodeVO;
 import com.cong.entity.VO.request.EmailRegisterVO;
+import com.cong.entity.VO.request.ResetVO;
 import com.cong.service.AccountService;
 import com.cong.utils.Const;
 import jakarta.annotation.Resource;
@@ -14,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @RestController
@@ -38,10 +42,24 @@ public class AuthorizeController {
     return this.resultHandle(() -> accountService.registerEmailAccount(emailRegisterVO));
   }
 
+
+  @PostMapping("/confirm-verify-code")
+  public RestBean<?> confirmCode(@RequestBody @Valid ConfirmResetCodeVO confirmResetCodeVO) {
+    return resultHandle(() -> accountService.confirmVerifyCode(confirmResetCodeVO));
+  }
+
+  @PostMapping("/reset-password")
+  public RestBean<?> resetPassword(@RequestBody @Valid ResetVO resetVO) {
+    return resultHandle(resetVO, accountService::resetPassword);
+  }
+
+  private <T> RestBean<?> resultHandle(T vo, Function<T, String> function) {
+    return resultHandle(() -> function.apply(vo));
+  }
+
   private RestBean<?> resultHandle(Supplier<String> action) {
     String result = action.get();
     return result == null ? RestBean.success() : RestBean.fail(400, result);
-
   }
 }
 

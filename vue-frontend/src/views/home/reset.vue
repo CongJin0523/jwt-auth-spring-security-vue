@@ -71,29 +71,38 @@ const rule = {
     code: [{validator: validateCode, trigger: ['blur', 'change']},],
 }
 
+function confirmCode() {
+    post(`/api/auth/confirm-verify-code`,
+        {
+            email: form.email,
+            code: form.code,
+        }, () => {
+        active.value++;
+        }, () => {
+        ElMessage.warning('Verification code is incorrect! Please try again!');
+        })
+}
 function submitResetForm() {
-    console.log("Reset button clicked"); // Debugging
-    active.value = 0; // Reset UI state
-    console.log(form);
     router.push("/");
-    // formRef.value.validate((valid) => {
-    //     if (valid) {
-    //
-    //         // post('/api/auth/reset',
-    //         //     {
-    //         //         password: form.password,
-    //         //         email: form.email,
-    //         //         code: form.code,
-    //         //     },
-    //         //     () => {
-    //         //         ElMessage.success('Reset successfully!');
-    //         //         router.push('/');
-    //         //     }
-    //         // )
-    //     } else {
-    //         ElMessage.error('Please check the form for errors.')
-    //     }
-    // })
+    formRef.value.validate((valid) => {
+        if (valid) {
+
+            post('/api/auth/reset-password',
+                {
+                    password: form.password,
+                    email: form.email,
+                    code: form.code,
+                },
+                () => {
+                    ElMessage.success('Reset successfully!');
+                    active.value = 0;
+                    router.push('/');
+                }
+            )
+        } else {
+            ElMessage.error('Please check the form for errors.')
+        }
+    })
 }
 </script>
 
@@ -143,7 +152,7 @@ function submitResetForm() {
                 </el-form>
             </div>
             <div style="margin-top: 50px">
-                <el-button @click="active++" type="primary" style="width: 80%">Start Reset</el-button>
+                <el-button @click="confirmCode" type="primary" style="width: 80%">Start Reset</el-button>
             </div>
         </div>
         <div style="text-align: center; margin: 0 40px" v-if="active === 1">
